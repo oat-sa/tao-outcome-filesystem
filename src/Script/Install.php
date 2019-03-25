@@ -18,15 +18,48 @@
  *
  */
 
-namespace oat\taoOutcomeFilesystem;
+namespace oat\taoOutcomeFilesystem\Script;
 
 
+use common_Exception;
 use oat\oatbox\extension\AbstractAction;
+use oat\oatbox\filesystem\FileSystemService;
+use oat\oatbox\service\exception\InvalidServiceManagerException;
+use oat\taoOutcomeFilesystem\OutcomeFilesystemRepository;
+use oat\taoResultServer\models\classes\implementation\ResultServerService;
 
-class TmpAction extends AbstractAction
+class Install extends AbstractAction
 {
+    /**
+     * @param $params
+     *
+     * @throws common_Exception
+     * @throws InvalidServiceManagerException
+     */
     public function __invoke($params)
     {
-        echo 'ssss';
+        $resultServerService = $this->getServiceManager()->get(ResultServerService::SERVICE_ID);
+
+        $resultStorage = $resultServerService->getOption(ResultServerService::OPTION_RESULT_STORAGE);
+
+        $outcomeFileSystemRepository = new OutcomeFilesystemRepository(
+            [
+                OutcomeFilesystemRepository::OPTION_STORAGE => $resultStorage
+            ]
+        );
+
+        $resultServerService->setOption(
+            ResultServerService::OPTION_RESULT_STORAGE,
+            OutcomeFilesystemRepository::SERVICE_ID
+        );
+
+        $this->getServiceManager()->register(OutcomeFilesystemRepository::SERVICE_ID, $outcomeFileSystemRepository);
+        $this->getServiceManager()->register(ResultServerService::SERVICE_ID, $resultServerService);
+
+        /** @var FileSystemService $fileSystemService */
+        $fileSystemService = $this->getServiceManager()->get(FileSystemService::SERVICE_ID);
+
+        $fileSystemService->createFileSystem('resultStorage');
+        $this->getServiceManager()->register(FileSystemService::SERVICE_ID, $fileSystemService);
     }
 }
