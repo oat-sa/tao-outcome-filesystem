@@ -30,8 +30,6 @@ use oat\oatbox\service\ConfigurableService;
 use oat\oatbox\service\exception\InvalidServiceManagerException;
 use oat\taoDelivery\model\execution\Delete\DeliveryExecutionDeleteRequest;
 use oat\taoResultServer\models\classes\ResultStorageInterface;
-use RuntimeException;
-use taoResultServer_models_classes_OutcomeVariable;
 use taoResultServer_models_classes_ResponseVariable;
 use taoResultServer_models_classes_Variable;
 
@@ -42,7 +40,7 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
     const OPTION_STORAGE = 'storage';
     const OPTION_FILESYSTEM = 'filesystem';
 
-    const BASE_TYPE_REFERENCE = 'fileReference';
+    const BASE_TYPE_FILE_REFERENCE = 'fileReference';
 
     /**
      * @var ResultStorageInterface
@@ -112,14 +110,14 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
     {
         $propertyValue = $this->getDbStorage()->getVariableProperty($variableId, $propertyName);
 
-        if ($propertyName === 'baseType' && $propertyValue === self::BASE_TYPE_REFERENCE) {
+        if ($propertyName === 'baseType' && $propertyValue === self::BASE_TYPE_FILE_REFERENCE) {
             return 'file';
         }
 
         if ($propertyName === 'candidateResponse') {
             $baseType = $this->getDbStorage()->getVariableProperty($variableId, 'baseType');
 
-            if ($baseType === self::BASE_TYPE_REFERENCE) {
+            if ($baseType === self::BASE_TYPE_FILE_REFERENCE) {
                 return $this->getFileSystem()->read($propertyValue);
             }
         }
@@ -156,6 +154,7 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
 
         return $dbStorage->deleteResult($deliveryResultIdentifier);
     }
+
     /**
      * Get the complete variables list stored for delivery execution
      *
@@ -293,13 +292,9 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
      */
     public function getVariable($callId, $variableIdentifier)
     {
+        // TODO: add file separation
+
         return $this->getDbStorage()->getVariable($callId, $variableIdentifier);
-
-//        if ($data[0]['']) {
-//
-//        }
-
-//        $this->filesystem-
     }
 
     /**
@@ -414,7 +409,7 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
      */
     private function handleFiles($deliveryResultIdentifier, taoResultServer_models_classes_Variable $itemVariable)
     {
-        if ($itemVariable->getBaseType() === 'file') {
+        if ($this->isFileCanBeExtracted($itemVariable)) {
             $variable = clone $itemVariable;
 
             $path = $this->getFilePathFactory()->getFilePath($deliveryResultIdentifier);
@@ -423,26 +418,12 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
 
             $this->getFileSystem()->write($path, $fileContent);
 
-            $variable->setBaseType(self::BASE_TYPE_REFERENCE);
+            $variable->setBaseType(self::BASE_TYPE_FILE_REFERENCE);
 
             return $variable;
         }
 
         return $itemVariable;
-    }
-
-    // TODO: check if we need it
-    private function getValue(taoResultServer_models_classes_Variable $variable)
-    {
-        if ($variable instanceof taoResultServer_models_classes_ResponseVariable) {
-            $variableValue = $variable->getCandidateResponse();
-        } elseif ($variable instanceof taoResultServer_models_classes_OutcomeVariable) {
-            $variableValue = $variable->getValue();
-        } else {
-            throw new RuntimeException('Variable type is not supported');
-        }
-
-        return $variableValue;
     }
 
     /**
@@ -535,17 +516,10 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
         );
     }
 
-    private function getValueAndReplaceWithPath(taoResultServer_models_classes_Variable $variable, $path)
+    private function getValueAndReplaceWithPath(taoResultServer_models_classes_ResponseVariable $variable, $path)
     {
-        if ($variable instanceof taoResultServer_models_classes_ResponseVariable) {
-            $variableValue = $variable->getCandidateResponse();
-            $variable->setCandidateResponse($path);
-        } elseif ($variable instanceof taoResultServer_models_classes_OutcomeVariable) {
-            $variableValue = $variable->getValue();
-            $variable->setValue($path);
-        } else {
-            throw new RuntimeException('Variable type is not supported');
-        }
+        $variableValue = $variable->getCandidateResponse();
+        $variable->setCandidateResponse($path);
 
         return $variableValue;
     }
@@ -634,6 +608,13 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
 
     private function isFileReference(taoResultServer_models_classes_Variable $variable)
     {
-        return $variable->getBaseType() === self::BASE_TYPE_REFERENCE;
+        return $variable->getBaseType() === self::BASE_TYPE_FILE_REFERENCE;
+    }
+
+    private function isFileCanBeExtracted(taoResultServer_models_classes_Variable $variable)
+    {
+        return $variable->getBaseType() === 'file'
+            && $variable instanceof taoResultServer_models_classes_ResponseVariable;
+
     }
 }

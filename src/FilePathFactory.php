@@ -21,8 +21,6 @@
 namespace oat\taoOutcomeFilesystem;
 
 
-use RuntimeException;
-
 class FilePathFactory
 {
     /**
@@ -32,19 +30,11 @@ class FilePathFactory
      */
     public function getFilePath($deliveryResultIdentifier)
     {
-        $fileName = $this->buildIdentifier();
-
-        if (empty($fileName)) {
-            throw new RuntimeException('File name should not be empty');
-        }
-
-        $dirPath = $this->getDirPath($deliveryResultIdentifier);
-
-        if (empty($fileName) === false) {
-            $dirPath .= "/${fileName}";
-        }
-
-        return $dirPath;
+        return sprintf(
+            '%s/%s',
+            $this->getDirPath($deliveryResultIdentifier),
+            $this->buildIdentifier()
+        );
     }
 
     /**
