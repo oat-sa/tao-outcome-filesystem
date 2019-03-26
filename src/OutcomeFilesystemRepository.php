@@ -237,20 +237,34 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
 
         /** @var  $rawVariable */
         foreach ($rawVariables as &$rawVariable) {
-            $variable = &$rawVariable[0]->variable;
-            if (
-                $variable instanceof taoResultServer_models_classes_ResponseVariable
-                && $this->isFileReference($variable)
-            ) {
-                $path = $variable->getCandidateResponse();
-                $fileContent = $this->getFileSystem()->read($path);
-
-                $variable->setCandidateResponse($fileContent);
-                $variable->setBaseType('file');
+            if ($this->canFileBeRestored($rawVariable[0]->variable)) {
+                $rawVariable[0]->variable = $this->restoreFile($rawVariable[0]->variable);
             }
         }
 
         return $rawVariables;
+    }
+
+    /**
+     * @param taoResultServer_models_classes_ResponseVariable $rawVariable
+     *
+     * @return taoResultServer_models_classes_ResponseVariable
+     *
+     * @throws InvalidServiceManagerException
+     * @throws common_exception_Error
+     * @throws common_exception_NotFound
+     */
+    private function restoreFile(taoResultServer_models_classes_ResponseVariable $rawVariable)
+    {
+        $variable = clone $rawVariable;
+
+        $path = $variable->getCandidateResponse();
+        $fileContent = $this->getFileSystem()->read($path);
+
+        $variable->setCandidateResponse($fileContent);
+        $variable->setBaseType('file');
+
+        return $variable;
     }
 
     /**
@@ -289,12 +303,19 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
      *   )
      *
      *)
+     * @throws InvalidServiceManagerException
+     * @throws common_exception_Error
+     * @throws common_exception_NotFound
      */
     public function getVariable($callId, $variableIdentifier)
     {
-        // TODO: add file separation
+        $rawVariable = $this->getDbStorage()->getVariable($callId, $variableIdentifier);
 
-        return $this->getDbStorage()->getVariable($callId, $variableIdentifier);
+        if ($this->canFileBeRestored($rawVariable[0]->variable)) {
+            $rawVariable[0]->variable = $this->restoreFile($rawVariable[0]->variable);
+        }
+
+        return $rawVariable;
     }
 
     /**
@@ -409,7 +430,7 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
      */
     private function handleFiles($deliveryResultIdentifier, taoResultServer_models_classes_Variable $itemVariable)
     {
-        if ($this->isFileCanBeExtracted($itemVariable)) {
+        if ($this->canFileBeExtracted($itemVariable)) {
             $variable = clone $itemVariable;
 
             $path = $this->getFilePathFactory()->getFilePath($deliveryResultIdentifier);
@@ -534,7 +555,7 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
      *
      * @param array $callOptions
      */
-    public function configure($callOptions = array())
+    public function configure($callOptions = [])
     {
         return $this->getDbStorage()->configure($callOptions);
     }
@@ -565,7 +586,7 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
      * @return array of results that match the filter : array(array('deliveryResultIdentifier' => '123',
      *               'testTakerIdentifier' => '456', 'deliveryIdentifier' => '789'))
      */
-    public function getResultByDelivery($delivery, $options = array())
+    public function getResultByDelivery($delivery, $options = [])
     {
         return $this->getDbStorage()->getResultByDelivery($delivery, $options);
     }
@@ -611,7 +632,13 @@ class OutcomeFilesystemRepository extends ConfigurableService implements ResultS
         return $variable->getBaseType() === self::BASE_TYPE_FILE_REFERENCE;
     }
 
-    private function isFileCanBeExtracted(taoResultServer_models_classes_Variable $variable)
+    private function canFileBeRestored(taoResultServer_models_classes_Variable $variable)
+    {
+        return $variable instanceof taoResultServer_models_classes_ResponseVariable
+            && $this->isFileReference($variable);
+    }
+
+    private function canFileBeExtracted(taoResultServer_models_classes_Variable $variable)
     {
         return $variable->getBaseType() === 'file'
             && $variable instanceof taoResultServer_models_classes_ResponseVariable;
