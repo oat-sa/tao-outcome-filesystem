@@ -42,9 +42,12 @@ class Install extends AbstractAction
 
         $resultStorage = $resultServerService->getOption(ResultServerService::OPTION_RESULT_STORAGE);
 
+        $fileSystemName = 'taoOutcomeFilesystem';
+
         $outcomeFileSystemRepository = new OutcomeFilesystemRepository(
             [
-                OutcomeFilesystemRepository::OPTION_STORAGE => $resultStorage
+                OutcomeFilesystemRepository::OPTION_STORAGE => $resultStorage,
+                OutcomeFilesystemRepository::OPTION_FILESYSTEM => $fileSystemName
             ]
         );
 
@@ -59,7 +62,7 @@ class Install extends AbstractAction
         /** @var FileSystemService $fileSystemService */
         $fileSystemService = $this->getServiceManager()->get(FileSystemService::SERVICE_ID);
 
-        $fileSystemService->createFileSystem('resultStorage');
+        $fileSystemService->createFileSystem($fileSystemName);
         $this->getServiceManager()->register(FileSystemService::SERVICE_ID, $fileSystemService);
     }
 }
