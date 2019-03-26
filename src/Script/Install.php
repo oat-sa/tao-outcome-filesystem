@@ -22,17 +22,19 @@ namespace oat\taoOutcomeFilesystem\Script;
 
 
 use common_Exception;
-use oat\oatbox\extension\AbstractAction;
+use common_report_Report as Report;
+use oat\oatbox\extension\InstallAction;
 use oat\oatbox\filesystem\FileSystemService;
 use oat\oatbox\service\exception\InvalidServiceManagerException;
 use oat\taoOutcomeFilesystem\OutcomeFilesystemRepository;
 use oat\taoResultServer\models\classes\implementation\ResultServerService;
 
-class Install extends AbstractAction
+class Install extends InstallAction
 {
     /**
      * @param $params
      *
+     * @return Report
      * @throws common_Exception
      * @throws InvalidServiceManagerException
      */
@@ -46,7 +48,7 @@ class Install extends AbstractAction
 
         $outcomeFileSystemRepository = new OutcomeFilesystemRepository(
             [
-                OutcomeFilesystemRepository::OPTION_STORAGE => $resultStorage,
+                OutcomeFilesystemRepository::OPTION_STORAGE    => $resultStorage,
                 OutcomeFilesystemRepository::OPTION_FILESYSTEM => $fileSystemName
             ]
         );
@@ -64,5 +66,7 @@ class Install extends AbstractAction
 
         $fileSystemService->createFileSystem($fileSystemName);
         $this->getServiceManager()->register(FileSystemService::SERVICE_ID, $fileSystemService);
+
+        return new Report(Report::TYPE_SUCCESS, 'File system storage enabled.');
     }
 }
