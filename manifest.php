@@ -19,24 +19,22 @@
 
 return array(
     'name' => 'taoOutcomeFilesystem',
-    'label' => 'extension-tao-outcomefs',
-    'description' => 'extension that allows a storage in relational database',
+    'label' => 'tao-outcome-filesystem',
+    'description' => 'extension that allows to store files in filesystem',
     'license' => 'GPL-2.0',
     'version' => '0.0.1',
     'author' => 'Open Assessment Technologies SA',
     'requires' => [
-        'taoResultServer' => '>=6.5.0',
-        'generis' => '>=7.9.6'
+        'taoResultServer' => '>=9.1.0',
+        'generis' => '>=9.0.4'
     ],
     // for compatibility
     'dependencies' => ['tao', 'taoResultServer'],
     'install' => [
         'php' => [
-            \oat\taoOutcomeRds\scripts\install\createTables::class,
-            __DIR__ . '/scripts/install/setDefault.php',
+            \oat\taoOutcomeFilesystem\Script\Install::class,
         ]
     ],
-    'update' => 'oat\\taoOutcomeRds\\scripts\\update\\Updater',
     'autoload' => [
         'psr-4' => [
             'oat\\taoOutcomeRds\\' => __DIR__ . DIRECTORY_SEPARATOR

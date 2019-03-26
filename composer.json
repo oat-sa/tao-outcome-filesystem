@@ -2,9 +2,16 @@
   "name": "oat-sa/tao-outcome-filesystem",
   "description": "extension that allows to store files in the file system",
   "license": "GPL-2.0",
-  "type" : "tao-extension",
+  "type": "tao-extension",
   "extra": {
     "tao-extension-name": "taoOutcomeFilesystem"
   },
-  "require": {}
+  "require": {
+    "oat-sa/oatbox-extension-installer": "~1.1||dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "oat\\taoOutcomeFilesystem\\": "src\\"
+    }
+  }
 }
